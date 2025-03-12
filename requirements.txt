@@ -1,0 +1,10 @@
+pandas
+matplotlib
+numpy
+seaborn
+scikit-learn
+ete3
+networkx
+MIPMLP
+statsmodels
+samba-metric
