@@ -957,7 +957,9 @@ def apply_mimic(name, folder, tag, eval="man", sis="fdr_bh", correct_first=True,
     global taxonomy_level
     global strain
     if strain_flag:
-        module_path = "/home/finkels9/parkinson_prediction/src/MIPMLP_package/__init__.py"
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
+        module_path = os.path.join(project_root,'src','MIPMLP_package','__init__.py')
         module_name = "MIPMLP_package"
 
         # Load the module using importlib

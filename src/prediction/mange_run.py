@@ -54,8 +54,7 @@ def process_all_scenarios_parallel(project_path, project_mimic_result, directori
     project_type = os.path.split(os.path.split(project_path)[0])[1]
 
     train_all_value = '16S' if project_type == '16S' else 'Shotgun'
-    if train_all_value=='Shotgun':
-        c=0
+
     scenarios = [
         {"scenario_name": "10K folds", "same_train_test": True, "llo": False, "lodo": False, "train_all": "None",
          'project_mimic_result': project_mimic_result, 'model_type': model_type},
@@ -92,8 +91,6 @@ def prepare_mimic_parallel(project_number, processed_project, tag_project, path_
 
 def apply_mimic_parallel(paths, output_pickle="projects_mimic_results.pkl"):
     processed,project_results = preprocess_all_projects(paths, output_pickle=output_pickle)
-    # project_results = pd.read_pickle(output_pickle)
-    # processed = project_results["processed_all"]["processed"]
 
     def update_results(future):
         project_number, result = future.result()
@@ -132,28 +129,20 @@ def apply_mimic_parallel(paths, output_pickle="projects_mimic_results.pkl"):
 
 
 # Main function
-def run(relevant_bac, simulation_name, model_type, specific_bac, fair_pick):
+def run(relevant_bac, simulation_name, model_type, specific_bac, fair_pick,path_to_read):
     # Dictionary to store AUC fold results
     global auc_results
     auc_results = {"Project": [], "Type": [], "Scenario": [], "Fold": [], "AUC": [], "Substrings": [], 'Coefficients': []}
 
-    path_to_read= r'/home/finkels9/parkinson_prediction/Data'
-    # path_to_read = r'/home/shanif3/new_project_directory/Data'
     directories, projects_path = check_required_directories(path_to_read)
 
     # preform mimic for each dataset
-    # project_mimic_result = apply_mimic_parallel(projects_path, output_pickle="projects_mimic_results_peptibase.pkl")
-    project_mimic_result = pd.read_pickle("projects_mimic_results_peptibase.pkl")
-    #
-    # # # Process all 16S datasets
+    project_mimic_result = apply_mimic_parallel(projects_path, output_pickle="projects_mimic_results.pkl")
+
+    # Process all datasets
     for project_number in projects_path:
         process_all_scenarios_parallel(project_number, project_mimic_result, directories, model_type=model_type,
                                            relevant_bac=relevant_bac, simulation_name=simulation_name,
                                            specific_bac=specific_bac, fair_pick=fair_pick)
-        #
-
-    # print("AUC results saved to 16S_shotgun_auc_results_all_scenarios.csv.")
 
 
-if __name__ == '__main__':
-    run('', '', '', '', '')
