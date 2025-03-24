@@ -72,6 +72,9 @@ def run_lodo(project_number, directories, specific_bac, train_on, validation, co
                 directories['Shotgun']) if os.path.isdir(os.path.join(directories['Shotgun'], sub))]
 
         projects_to_train_on = [project for project in projects_to_train_on if project != project_number]
+        if 'PRJEB27564' in project_number:
+            # drop the project contain PRJEB27564 in order to avoid leakage
+            projects_to_train_on = [project for project in projects_to_train_on if 'PRJEB27564' not in project]
 
         if fair_pick:
             substrings = overlap_check(projects_to_train_on, project_mimic_result)
@@ -325,7 +328,7 @@ def run_based_model(to_learn, tag, df_test, tag_test, project_number, train_on, 
         plot_roc(path_to_save, train_on, pred_probabilities, true_labels, loo_flag_name, leave_one_dataset_out_flag,
                  project_number, validation, confounders_names_list)
     except Exception as e:
-        print(f"Error processing כפךםאrun_based_model function, with project {project_number}: {e}")
+        print(f"Error processing run_based_model function, with project {project_number}: {e}")
         return 'E',''
 
     if model_type == 'lgr':

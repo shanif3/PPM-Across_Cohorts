@@ -4,11 +4,12 @@ from collections import Counter
 import seaborn as sns
 # Modify legend to show only two categories
 from matplotlib.patches import Patch
+import matplotlib.font_manager as fm
+
 # Load data
-all_data = pd.read_pickle("/home/finkels9/parkinson/projects_mimic_results_peptibase.pkl")
+all_data = pd.read_pickle(r"C:\Users\user\PycharmProjects\pythonProject2\PPM-Across_Cohorts\projects_mimic_results.pkl")
 datasets_16S = []
 datasets_WGS = []
-
 for key in all_data.keys():
     if key != 'processed_all':
         tag, path_to_read, df_corrs, processed = all_data[key]['tag'], all_data[key]['path_to_read'], all_data[key]['df_corrs'], all_data[key]['processed']
@@ -47,21 +48,16 @@ df = pd.DataFrame({
     "Occurrences": counts_16S + counts_WGS + counts_all + genus_leaf_counts_16S + genus_leaf_counts_WGS + genus_leaf_counts_all,
     "Category": (["Leaf"] * (len(counts_16S) + len(counts_WGS) + len(counts_all))) +
                 (["Genus"] * (len(genus_leaf_counts_16S) + len(genus_leaf_counts_WGS) + len(genus_leaf_counts_all))),
-    # "Type": (["16S Leaf"] * len(counts_16S)) +
-    #         (["WGS Leaf"] * len(counts_WGS)) +
-    #         (["Combined Leaf"] * len(counts_all)) +
-    #         (["16S Genus"] * len(genus_leaf_counts_16S)) +
-    #         (["WGS Genus"] * len(genus_leaf_counts_WGS)) +
-    #         (["Combined Genus"] * len(genus_leaf_counts_all))
+
 })
 # Define custom colors
 custom_palette = {
-    "Leaf": "#fdc2ff",  # Red-Orange
-    "Leaf of WGS": "#fdc2ff",  # Green
-    "Leaf of 16S & WGS": "#fdc2ff",  # Blue
-    "Genus": "#7b00ff",  # Pink
-    "Genus Leaf of WGS": "#7b00ff",  # Purple
-    "Genus Leaf of 16S & WGS": "#7b00ff"  # Cyan
+    "Leaf": "#3848ff",  # Red-Orange
+    "Leaf of WGS": "#3848ff",  # Green
+    "Leaf of 16S & WGS": "#3848ff",  # Blue
+    "Genus": "#d307f7",  # Pink
+    "Genus Leaf of WGS": "#d307f7",  # Purple
+    "Genus Leaf of 16S & WGS": "d307f7"  # Cyan
 }
 plt.figure(figsize=(4, 4))  # Make the plot smaller
 
@@ -70,13 +66,19 @@ for t in df["Category"].unique():
     sns.kdeplot(subset["Occurrences"], fill=True, color=custom_palette[subset["Category"].iloc[0]])
 
 
+custom_font = fm.FontProperties(family="DejaVu Serif", size=8)
+custom_font1 = fm.FontProperties(family="DejaVu Serif", size=10)
+
 legend_elements = [
     Patch(facecolor=custom_palette["Leaf"], label="Leaf", alpha=0.6),
     Patch(facecolor=custom_palette["Genus"], label="Genus", alpha=0.6)
 ]
-plt.legend(handles=legend_elements, loc="upper right")
+plt.legend(handles=legend_elements, loc="upper right", prop=custom_font)
 plt.xlim(-1, 10)
-plt.title("Leaf vs Genus Occurrences Across Datasets")
-plt.xlabel("Number of Occurrences Across Datasets")
-plt.ylabel("Density")
-plt.show()
+plt.title("Leaf vs Genus Occurrences Across Datasets",fontproperties=custom_font1)
+plt.xlabel("Number of Occurrences Across Datasets",fontproperties=custom_font)
+plt.ylabel("Density",fontproperties=custom_font)
+plt.tight_layout()
+# plt.show()
+plt.savefig(r'C:\Users\user\PycharmProjects\pythonProject2\plots_to_figure\stam.png',dpi=300)
+

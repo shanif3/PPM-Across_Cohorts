@@ -1,9 +1,14 @@
 import numpy as np
 from matplotlib.patches import Patch
 import os
+import matplotlib.font_manager as fm
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from collections import Counter
+from matplotlib.font_manager import FontProperties
+roman_font = FontProperties(family="DejaVu Serif")
+
 mapping_project_to_nickname={
     'PRJEB27564_baseline': '1-16S',
     'PRJEB27564_followup': '2-16S',
@@ -28,7 +33,7 @@ projects = ['PRJEB14674', 'PRJEB14928', 'PRJEB27564_baseline', 'PRJEB27564_follo
             'PRJNA743718', 'PRJEB59350', 'PRJNA762484']
 data = {project: {} for project in projects}
 
-all_projects = pd.read_pickle('projects_mimic_results_peptibase.pkl')
+all_projects = pd.read_pickle(r'C:\Users\user\PycharmProjects\pythonProject2\PPM-Across_Cohorts\projects_mimic_results.pkl')
 projects = [p for p in all_projects.keys() if p in projects]
 
 for project in projects:
@@ -80,18 +85,11 @@ for project in projects:
 bacteria_counter = Counter()
 for microbes in data.values():
     bacteria_counter.update(microbes.keys())
-    # bacteria_counter.update(micro.split(';')[0] for micro in microbes)
 
-filtered_bacteria = {bacteria for bacteria, count in bacteria_counter.items() if count>2}
+filtered_bacteria = {bacteria for bacteria, count in bacteria_counter.items() if count>2 }
 filtered_projects = {project: set(microbes.keys()).intersection(filtered_bacteria) for project, microbes in
                      data.items()}
-# bac= []
-# for project, bacteria_list in data.items():
-#     bac.extend(set(bacteria_list))
-# bacteria_counter= Counter(bac)
-# filtered_bacteria= [bacteria for bacteria, count in bacteria_counter.items() if count >=3]
-# filtered_projects = {project: set(microbes.keys()).intersection(filtered_bacteria) for project, microbes in
-#                      data.items()}
+
 
 
 def create_presence_matrix_with_scc(filtered_projects, data):
@@ -126,10 +124,37 @@ def create_presence_matrix_with_scc(filtered_projects, data):
     presence_matrix = presence_matrix.loc[:, (presence_matrix != 0).any(axis=0)]
     scc_matrix = scc_matrix.loc[:, (scc_matrix != 0).any(axis=0)]
 
-    return presence_matrix, scc_matrix
+    how_many_taxa_under_bac= {}
+    bac_16s=[]
+    bac_wgs=[]
+    for project in all_projects.keys():
+        if project in ['HE', 'jacob', 'IBD', 'KIM', 'PRJEB47976_Alzheimer','Linoy','processed_all']:
+            continue
+        for bac in all_projects[project]['processed'].columns.tolist():
+            if bac.endswith('_0'):
+                bac = bac[:-2]
+            # check if bac contains any taxon in all_bacteria and get the bacteria name it contains
+            matching_taxon = next((taxon for taxon in all_bacteria if taxon in bac), None)
+            if matching_taxon:
+                if matching_taxon not in how_many_taxa_under_bac:
+                    how_many_taxa_under_bac[matching_taxon] = {'16S': 0, 'WGS': 0}
+                if '16S' in mapping_project_to_nickname[project]:
+                    if bac not in bac_16s:
+                        how_many_taxa_under_bac[matching_taxon]['16S']+=1
+                        bac_16s.append(bac)
+                else:
+                    if bac not in bac_wgs:
+                        how_many_taxa_under_bac[matching_taxon]['WGS']+=1
+                        bac_wgs.append(bac)
 
 
-def plot_bacteria_presence_with_scc(presence_matrix, scc_matrix, data):
+
+
+
+    return presence_matrix, scc_matrix, how_many_taxa_under_bac
+
+
+def plot_bacteria_presence_with_scc(presence_matrix, scc_matrix, data, how_many_taxa_under_bac):
     """
     Create an UpSet-like presence plot of bacteria across datasets with SCC-based coloring and dot sizes based on SCC magnitude.
 
@@ -152,19 +177,37 @@ def plot_bacteria_presence_with_scc(presence_matrix, scc_matrix, data):
     scc_matrix = scc_matrix.loc[binary_matrix.index, binary_matrix.columns]
     binary_matrix = binary_matrix[col_sums.sort_values(ascending=False).index]
 
-    fig = plt.figure(figsize=(38, 28))
+    fig = plt.figure(figsize=(60, 60))
     grid = fig.add_gridspec(nrows=2, ncols=2, height_ratios=[1, 4], width_ratios=[4, 1], hspace=0.1, wspace=0.1)
 
     # Top barplot
     ax_col_bar = fig.add_subplot(grid[0, 0])
-    col_sums = col_sums.loc[binary_matrix.columns]
-    bar_container = ax_col_bar.bar(binary_matrix.columns, col_sums, color='#bba3ff')  # Pastel pink
+    bacteria_names = list(how_many_taxa_under_bac.keys())
+    values_16S = [how_many_taxa_under_bac[bac]["16S"] for bac in binary_matrix.columns]
+    values_WGS = [how_many_taxa_under_bac[bac]["WGS"] for bac in binary_matrix.columns]
+    # Set bar positions
+    x = np.arange(len(bacteria_names))
+    width = 0.4  # Width of bars
+
+    # Create grouped bar chart for 16S and WGS
+    bars_16S = ax_col_bar.bar(x - width / 2, values_16S, width, label='16S', color='#6a5acd')  # Slate Blue
+    bars_WGS = ax_col_bar.bar(x + width / 2, values_WGS, width, label='WGS', color='#bba3ff')  # Tomato Red
+
+    # Keep x-axis ticks removed (as in the original plot)
     ax_col_bar.set_xticks([])
-    ax_col_bar.set_ylabel('Bacteria overlap count', fontsize=30)
+
+    # Set labels and formatting
+    ax_col_bar.set_ylabel('Number of Sub-Taxa', fontsize=70, labelpad=25, font=roman_font)
     ax_col_bar.spines['top'].set_visible(False)
     ax_col_bar.spines['right'].set_visible(False)
-    ax_col_bar.spines['left'].set_visible(False)
-    ax_col_bar.bar_label(bar_container, labels=[f'{int(c)}' for c in col_sums], padding=3, fontsize=40)
+    ax_col_bar.yaxis.set_tick_params(labelsize=50)
+
+    # Add a legend in the upper right
+    ax_col_bar.legend(fontsize=60, loc="upper right")
+
+    # Add numerical labels on top of bars
+    ax_col_bar.bar_label(bars_16S, labels=[f'{int(c)}' for c in values_16S], padding=3, fontsize=70)
+    ax_col_bar.bar_label(bars_WGS, labels=[f'{int(c)}' for c in values_WGS], padding=3, fontsize=70)
 
     # Left barplot
     ax_row_bar = fig.add_subplot(grid[1, 1])
@@ -180,12 +223,11 @@ def plot_bacteria_presence_with_scc(presence_matrix, scc_matrix, data):
     ax_row_bar.set_yticks([])
     # add the project counts to the right of the bar
     ax_row_bar.set_xlim(0, project_counts.max() + 1,)
-    ax_row_bar.set_xlabel('Significant bacteria count on project', fontsize=30)
+    ax_row_bar.set_xlabel('Significant Taxa Count', fontsize=70, labelpad=25, font=roman_font)
     ax_row_bar.spines['top'].set_visible(False)
     ax_row_bar.spines['right'].set_visible(False)
-    ax_row_bar.spines['bottom'].set_visible(False)
-    ax_row_bar.bar_label(barh_container, labels=[f'{int(c)}' for c in project_counts], padding=3, fontsize=40)
-
+    ax_row_bar.xaxis.set_tick_params(labelsize=50)
+    ax_row_bar.bar_label(barh_container, labels=[f'{int(c)}' for c in project_counts], padding=3, fontsize=70)
 
 
     ax_grid = fig.add_subplot(grid[1, 0])
@@ -200,7 +242,7 @@ def plot_bacteria_presence_with_scc(presence_matrix, scc_matrix, data):
         for j, value in enumerate(row):
             scc_value = scc_matrix.loc[dataset, binary_matrix.columns[j]]
             color = '#0f60f7' if scc_value > 0 else '#db1435'
-            size = 20 + abs(scc_value) * 40  # Base size 10, scaled by SCC magnitude
+            size = 20 + abs(scc_value) * 55  # Base size 10, scaled by SCC magnitude
             if value == 1:
                 ax_grid.plot(j, i, marker='o', color=color, markersize=size, markeredgecolor='black', markeredgewidth=1)
             else:
@@ -211,16 +253,29 @@ def plot_bacteria_presence_with_scc(presence_matrix, scc_matrix, data):
     corrected_binary_matrix_columns = [col.rsplit('_', 1)[0] if len(col.split(';')) > 1 else col for col in
                                        binary_matrix.columns]
 
-    ax_grid.set_xticklabels(corrected_binary_matrix_columns, rotation=18, fontsize=35)
+    font_properties = fm.FontProperties(family='DejaVu Serif', size=40)
+    ax_grid.set_xticklabels(corrected_binary_matrix_columns, rotation=20, font_properties=font_properties)
+
     ax_grid.set_yticks(np.arange(len(binary_matrix.index)))
-    ax_grid.set_yticklabels(binary_matrix.index, fontsize=60)
+    font_properties = fm.FontProperties(family='DejaVu Serif', size=70)
+    sample_counts = [183, 219, 507, 256, 344]
+    formatted_labels = [
+        f"{name}\n" + r"$\mathregular{" + f"{count}" + r"}$" + r" $\text{samples}$"
+        for name, count in zip(binary_matrix.index, sample_counts)
+    ]
+    # Set Y-axis tick labels with font properties
+    ax_grid.set_yticklabels(formatted_labels, fontproperties=font_properties)
 
     legend_elements = [
         Patch(facecolor='#0f60f7', label='Significant & Positive Coefficient'),
         Patch(facecolor='#db1435', label='Significant & Negative Coefficient'),
         Patch(facecolor='#E6E6FA', label='Not Significant')
     ]
-    ax_grid.legend(handles=legend_elements, loc='lower right', fontsize=35)
+    # ax_grid.legend(handles=legend_elements, loc='lower right', fontsize=35)
+    font_properties = fm.FontProperties(family='DejaVu Serif', size=60)
+
+    # Add legend with font properties
+    ax_grid.legend(handles=legend_elements, loc='lower right', prop=font_properties)
     ax_grid.set_facecolor('white')  # Set background color to white
     # Remove the border (spines) of the grid
     ax_grid.spines['top'].set_visible(False)
@@ -235,7 +290,7 @@ def plot_bacteria_presence_with_scc(presence_matrix, scc_matrix, data):
     plt.show()
 
 
-presence_matrix, scc_matrix = create_presence_matrix_with_scc(filtered_projects, data)
+presence_matrix, scc_matrix, how_many_taxa_under_bac = create_presence_matrix_with_scc(filtered_projects, data)
 presence_matrix.columns= [mapping_project_to_nickname[i] for i in presence_matrix.columns]
 # sort the columns
 reordered_columns = sorted(presence_matrix.columns, key=lambda x: (x.split('-')[1], int(x.split('-')[0])))
@@ -246,4 +301,4 @@ scc_matrix = scc_matrix[reordered_columns]
 presence_matrix=presence_matrix[presence_matrix.columns[::-1]]
 scc_matrix=scc_matrix[scc_matrix.columns[::-1]]
 
-plot_bacteria_presence_with_scc(presence_matrix, scc_matrix, data)
+plot_bacteria_presence_with_scc(presence_matrix, scc_matrix, data, how_many_taxa_under_bac)

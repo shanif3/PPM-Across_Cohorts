@@ -4,11 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Example DataFrame
-path = "/home/finkels9/parkinson/NEW_RESULTS/lgr/picking_specific_bac_/under_bac/g__Roseburia_g__Bifidobacterium_g__Blautia_g__Lactobacillus_g__Akkermansia_g__Faecalibacterium.csv"
+path =r"C:\Users\user\PycharmProjects\pythonProject2\PPM-Across_Cohorts\save_results\genera\lgr\picking_specific_bac_\under_bac\g__Roseburia_g__Bifidobacterium_g__Blautia_g__Lactobacillus_g__Akkermansia_g__Faecalibacterium.csv"
 
 df = pd.read_csv(path, index_col=0)
 filtered_rows = df[df['Scenario'] == 'Leave one dataset out; train on-Shotgun+16S']
-df = filtered_rows.loc['jacob']
+df = filtered_rows.loc['Linoy']
 coefficients_str = df['Coefficients']
 bacteria_coefficients = [
     item.split(':') for item in coefficients_str.split(', ')
@@ -18,7 +18,7 @@ bacteria_coefficients = [
 bacteria_names = [bc[0] for bc in bacteria_coefficients]
 coefficients = [float(bc[1]) * 100 for bc in bacteria_coefficients]
 group = [name.split('g__')[1].split(';')[0].split('_')[0] if 'g__' in name else None for name in bacteria_names]
-names = [name.split('g__')[1].split(';')[1] if 'g__' in name else None for name in bacteria_names]
+names = [name.split('g__')[1].split(';')[1:] if 'g__' in name else None for name in bacteria_names]
 
 df = pd.DataFrame({
     'group': group,
@@ -65,14 +65,17 @@ unique_groups = np.unique(GROUP)
 color_map = plt.cm.get_cmap("tab20", len(unique_groups))
 group_colors = {group: color_map(i) for i, group in enumerate(unique_groups)}
 COLORS = [group_colors[g] for g in GROUP]
+
+EDGE_COLORS = ["black" if "t__" in name else "white" for name in LABELS]
+
 # Plot bars
 ax.bar(
     ANGLES[IDXS],
     VALUES,
     width=WIDTH,
     color=COLORS,
-    edgecolor="white",
-    linewidth=1
+    linewidth=1,
+    edgecolor=EDGE_COLORS
 )
 
 
@@ -105,5 +108,5 @@ for g, angle in zip(unique_groups, group_angles):
         fontweight="bold",
         color=group_colors[g]
     )
-
+plt.savefig(r"C:\Users\user\PycharmProjects\pythonProject2\plots_to_figure\group.png",dpi=300)
 plt.show()

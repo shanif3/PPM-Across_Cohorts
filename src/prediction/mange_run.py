@@ -56,10 +56,10 @@ def process_all_scenarios_parallel(project_path, project_mimic_result, directori
     train_all_value = '16S' if project_type == '16S' else 'Shotgun'
 
     scenarios = [
-        {"scenario_name": "10K folds", "same_train_test": True, "llo": False, "lodo": False, "train_all": "None",
-         'project_mimic_result': project_mimic_result, 'model_type': model_type},
-        {"scenario_name": "Leave one sample out", "same_train_test": True, "llo": True, "lodo": False,
-         "train_all": "None", 'project_mimic_result': project_mimic_result, 'model_type': model_type},
+        # {"scenario_name": "10K folds", "same_train_test": True, "llo": False, "lodo": False, "train_all": "None",
+        #  'project_mimic_result': project_mimic_result, 'model_type': model_type},
+        # {"scenario_name": "Leave one sample out", "same_train_test": True, "llo": True, "lodo": False,
+        #  "train_all": "None", 'project_mimic_result': project_mimic_result, 'model_type': model_type},
         {"scenario_name": "Leave one dataset out; train on-Shotgun+16S", "same_train_test": False, "llo": False,
          "lodo": True, "train_all": 'all', 'project_mimic_result': project_mimic_result,
          'model_type': model_type},
@@ -137,8 +137,8 @@ def run(relevant_bac, simulation_name, model_type, specific_bac, fair_pick,path_
     directories, projects_path = check_required_directories(path_to_read)
 
     # preform mimic for each dataset
-    project_mimic_result = apply_mimic_parallel(projects_path, output_pickle="projects_mimic_results.pkl")
-
+    # project_mimic_result = apply_mimic_parallel(projects_path, output_pickle="projects_mimic_results.pkl")
+    project_mimic_result = pd.read_pickle(r"C:\Users\user\PycharmProjects\pythonProject2\PPM-Across_Cohorts\projects_mimic_results.pkl")
     # Process all datasets
     for project_number in projects_path:
         process_all_scenarios_parallel(project_number, project_mimic_result, directories, model_type=model_type,
